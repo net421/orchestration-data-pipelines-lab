@@ -1,6 +1,17 @@
 # Retry Patterns
 
-- Retry transient network/API failures.
-- Do not retry deterministic validation failures without correction.
-- Log attempt count and final failure reason.
-- Keep idempotent outputs to avoid duplicate records.
+Retry only errors likely to be transient:
+
+- temporary filesystem or network failures;
+- throttling;
+- service unavailability.
+
+Do not retry deterministic contract failures such as:
+
+- missing required columns;
+- duplicate business keys;
+- invalid domain values;
+- negative quantities.
+
+The local `retry` decorator uses bounded exponential delay. Framework examples
+also set finite retry counts to avoid infinite failure loops.
