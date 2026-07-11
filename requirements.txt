@@ -1,0 +1,7 @@
+pandas>=2.0,<3.0
+pytest>=8.0,<9.0
+
+# Optional orchestration runtimes:
+# apache-airflow>=2.9
+# prefect>=3.0
+# dagster>=1.7

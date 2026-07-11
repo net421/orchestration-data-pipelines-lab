@@ -1,0 +1,62 @@
+{
+  "name": "pl_supply_chain_raw_to_mart",
+  "properties": {
+    "parameters": {
+      "environment": {"type": "String", "defaultValue": "dev"},
+      "runDate": {"type": "String"}
+    },
+    "activities": [
+      {
+        "name": "CopyOrdersToRaw",
+        "type": "Copy",
+        "dependsOn": [],
+        "policy": {"retry": 2, "retryIntervalInSeconds": 30}
+      },
+      {
+        "name": "CopyShipmentsToRaw",
+        "type": "Copy",
+        "dependsOn": [],
+        "policy": {"retry": 2, "retryIntervalInSeconds": 30}
+      },
+      {
+        "name": "ValidateDataContracts",
+        "type": "AzureFunctionActivity",
+        "dependsOn": [
+          {"activity": "CopyOrdersToRaw", "dependencyConditions": ["Succeeded"]},
+          {"activity": "CopyShipmentsToRaw", "dependencyConditions": ["Succeeded"]}
+        ]
+      },
+      {
+        "name": "QualityGate",
+        "type": "IfCondition",
+        "dependsOn": [
+          {"activity": "ValidateDataContracts", "dependencyConditions": ["Succeeded"]}
+        ],
+        "typeProperties": {
+          "expression": {
+            "value": "@equals(activity('ValidateDataContracts').output.valid, true)",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [
+            {
+              "name": "TransformAndPublish",
+              "type": "DatabricksNotebook",
+              "policy": {"retry": 1, "retryIntervalInSeconds": 60}
+            }
+          ],
+          "ifFalseActivities": [
+            {
+              "name": "FailInvalidContract",
+              "type": "Fail",
+              "typeProperties": {
+                "message": "Data-contract validation failed.",
+                "errorCode": "DATA_CONTRACT_FAILURE"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "annotations": ["portfolio-lab", "supply-chain", "human-validated"]
+  }
+}

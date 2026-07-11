@@ -1,11 +1,29 @@
-# Azure Data Factory Pipeline Design Pattern
+# Azure Data Factory Design Pattern
 
-## Pipeline Stages
+This design maps the local pipeline to an Azure implementation without
+claiming a deployed production environment.
 
-1. Ingest source files or API extracts.
-2. Land raw data in a storage zone.
-3. Trigger transformation notebooks or SQL scripts.
-4. Validate record counts and required fields.
-5. Publish marts to BI consumption layer.
+## Azure Components
 
-This is a design pattern document, not a deployed ADF instance.
+- ADLS Gen2 `raw`, `validated`, and `published` zones.
+- Managed Identity for service-to-service authentication.
+- Key Vault for secrets that cannot use managed identity.
+- Parameterized datasets for environment, source date, and file path.
+- Copy Activity for landing ERP/TMS extracts.
+- Azure Function, Databricks Notebook, or Synapse Notebook for Python logic.
+- Stored Procedure or SQL Script activity for reconciliation checks.
+- If Condition quality gate before publication.
+- Azure Monitor / Log Analytics for run telemetry.
+
+## Control Flow
+
+1. `CopyOrdersToRaw`
+2. `CopyShipmentsToRaw`
+3. `ValidateDataContracts`
+4. `IfValidationPassed`
+5. `TransformOrderServiceMarts`
+6. `RunQualityChecks`
+7. `PublishMarts`
+8. `WriteRunMetadata`
+
+Failure paths send an alert and retain the invalid landing files for inspection.
